@@ -4,6 +4,7 @@ import './App.css';
 
 function App() {
   const [candidatesList, setCandidatesList] = useState(candidatos);
+  const [selectedCandidateForInterview, setSelectedCandidateForInterview] = useState(null);
 
   const [candidateFormState, setCandidateFormState] = useState({
     nombre: '',
@@ -156,11 +157,12 @@ function App() {
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cargo</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Familia de Cargo</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CV Adjunto</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Entrevista</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {candidatesList.map(candidato => (
-                        <tr key={candidato.id} className="hover:bg-slate-50">
+                        <tr key={candidato.id} className={`hover:bg-slate-50 ${selectedCandidateForInterview === candidato.id ? 'bg-blue-50' : ''}`}>
                           <td className="px-4 py-2 text-sm text-gray-900 truncate max-w-xs">{candidato.nombre}</td>
                           <td className="px-4 py-2 text-sm text-gray-900 truncate max-w-xs">{candidato.correo}</td>
                           <td className="px-4 py-2 text-sm text-gray-900 truncate max-w-xs">{candidato.cargo}</td>
@@ -172,10 +174,32 @@ function App() {
                               <span className="cv-indicator">—</span>
                             )}
                           </td>
+                          <td className="px-4 py-2 text-sm text-gray-900 truncate max-w-xs">
+                            <button
+                              onClick={() => setSelectedCandidateForInterview(candidato.id)}
+                              className={`px-2 py-1 bg-${selectedCandidateForInterview === candidato.id ? 'blue-600' : 'gray-200'} text-${selectedCandidateForInterview === candidato.id ? 'white' : 'gray-700'} text-xs rounded hover:bg-${selectedCandidateForInterview === candidato.id ? 'blue-700' : 'gray-300'} transition-colors`}
+                            >
+                              {selectedCandidateForInterview === candidato.id ? 'Seleccionado' : 'Seleccionar para Entrevista'}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                  {selectedCandidateForInterview !== null && (
+                    <div className="mt-4 p-3 bg-blue-50 border-l-4 border-blue-500">
+                      <p className="text-sm text-blue-800 font-medium">
+                        Candidato seleccionado para entrevista:
+                        {candidatesList.find(c => c.id === selectedCandidateForInterview)?.nombre || ''}
+                      </p>
+                      <button
+                        onClick={() => setSelectedCandidateForInterview(null)}
+                        className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                      >
+                        Cancelar Selección
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -191,7 +215,7 @@ function App() {
                       <tr className="bg-slate-50">
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Candidato</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Analista</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CECO</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Unidad</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Ubicación</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fecha</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
