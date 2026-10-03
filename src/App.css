@@ -1,7 +1,6 @@
 :root {
-  /* These variables are already defined in index.css, but we can override or add component-specific ones if needed */
   --card-bg: #ffffff;
-  --hover-bg: #f0f9f8; /* Light teal */
+  --hover-bg: #f0f9f8;
   --input-bg: #ffffff;
   --accent: #00A896;
   --accent-hover: #008070;
@@ -11,7 +10,6 @@
   --danger-color: #dc3545;
 }
 
-/* Global app layout */
 .app-header {
   text-align: center;
   padding: 2rem 0;
@@ -46,7 +44,6 @@
   border-top: 1px solid var(--border);
 }
 
-/* Candidate Registration Form */
 .candidate-registration {
   background: var(--card-bg);
   border-radius: 8px;
@@ -145,7 +142,6 @@
   background: #5a6268;
 }
 
-/* Dashboard */
 .dashboard {
   background: var(--card-bg);
   border-radius: 8px;
@@ -221,7 +217,6 @@
   font-size: 0.875rem;
 }
 
-/* Status badges */
 .status-pendiente {
   background: #fff3cd;
   color: #856404;
@@ -249,7 +244,6 @@
   font-weight: 500;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .app-header {
     padding: 1.5rem 0;
