@@ -1,4 +1,4 @@
-import { User, Logout } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 
 export default function Navbar() {
     return (
@@ -20,7 +20,7 @@ export default function Navbar() {
                     </div>
                 </div>
                 <button className = "p-2 hover:bg-blue-800 rounded-lg text-blue-200 hover:text-white transition-colors" title="Cerrar Sesión">
-                    <Logout className = "w-4 h-4" />
+                    <LogOut className = "w-4 h-4" />
                 </button>
             </div>
         </header>
