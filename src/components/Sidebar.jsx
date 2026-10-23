@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, ClipboardList, LogIn } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen, closeMobile }) {
   const linkClass = ({ isActive }) =>
     `flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       isActive
@@ -10,33 +10,30 @@ export default function Sidebar() {
     }`;
 
   return (
-    <aside className="bg-white border-r border-gray-200 p-4 hidden md:block">
+    <aside
+      className={`bg-white border-r border-gray-200 p-4 ${
+        mobileOpen ? 'block' : 'hidden'
+      } md:block`}
+    >
       <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 px-2">
         Navegación Principal
       </p>
 
       <nav className="space-y-1">
-        <NavLink to="/" className={linkClass}>
+        <NavLink to="/" onClick={closeMobile} className={linkClass}>
           <LayoutDashboard className="w-4 h-4" />
           <span>Dashboard</span>
         </NavLink>
 
-        <NavLink to="/candidatos" className={linkClass}>
+        <NavLink to="/candidatos" onClick={closeMobile} className={linkClass}>
           <Users className="w-4 h-4" />
           <span>Candidatos</span>
         </NavLink>
 
-        <NavLink to="/solicitudes" className={linkClass}>
+        <NavLink to="/solicitudes" onClick={closeMobile} className={linkClass}>
           <ClipboardList className="w-4 h-4" />
           <span>Solicitudes</span>
         </NavLink>
-
-        <div className="pt-4 mt-4 border-t border-gray-100">
-          <NavLink to="/login" className={linkClass}>
-            <LogIn className="w-4 h-4" />
-            <span>Iniciar Sesión</span>
-          </NavLink>
-        </div>
       </nav>
     </aside>
   );
