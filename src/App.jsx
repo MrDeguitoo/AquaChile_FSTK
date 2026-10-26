@@ -11,7 +11,7 @@ import NotFoundPage from './pages/NotFoundPage';
 
 export default function App(){
   return (
-    <Authprovider>
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path = "/login" element = {<LoginPage/>} />
@@ -27,6 +27,6 @@ export default function App(){
           </Route>
         </Routes>
       </BrowserRouter>
-    </Authprovider>
+    </AuthProvider>
   );
 }
