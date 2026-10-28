@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: aquachile_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: aquachile_user
+      POSTGRES_PASSWORD: aquachile_password
+      POSTGRES_DB: aquachile_psicolaboral
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+volumes:
+  postgres_data:

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { candidatos, solicitudes } from './data';
+import DashboardPage from './pages/dashboard';
 import './App.css';
 
 function App() {
@@ -62,6 +63,8 @@ function App() {
       </header>
 
       <main className="app-main">
+
+        <DashboardPage />
 
         <section className="candidate-registration">
           <h2>Registro de Nuevo Candidato</h2>
