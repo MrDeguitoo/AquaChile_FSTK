@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { UserPlus, Paperclip } from 'lucide-react';
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const EXTENSIONES_CV = ['pdf', 'doc', 'docx'];
+
 export default function FormCandidato({ onAddCandidato }) {
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
@@ -11,31 +14,45 @@ export default function FormCandidato({ onAddCandidato }) {
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!nombre || !correo || !cargo) {
-      setError('Por favor completa todos los campos obligatorios.');
+  e.preventDefault();
+
+  if (!nombre.trim() || !correo.trim() || !cargo.trim()) {
+    setError('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+
+  if (!EMAIL_REGEX.test(correo.trim())) {
+    setError('Ingresa un correo electrónico con formato válido (ej. usuario@aquachile.cl).');
+    return;
+  }
+
+  if (cvFile) {
+    const fileExt = cvFile.name.split('.').pop().toLowerCase();
+    if (!EXTENSIONES_CV.includes(fileExt)) {
+      setError('Formato de CV no permitido. Sube un archivo .pdf, .doc o .docx');
       return;
     }
+  }
 
-    const nuevoCandidato = {
-      id: Date.now(),
-      nombre,
-      correo,
-      cargo,
-      familiaCargo,
-      cvAdjunto: cvFile ? cvFile.name : null,
-      estado: 'Nuevo',
-      fechaRegistro: new Date().toISOString().split('T')[0]
-    };
-
-    onAddCandidato(nuevoCandidato);
-    setNombre('');
-    setCorreo('');
-    setCargo('');
-    setCvFile(null);
-    setFileInputKey((k) => k + 1); // limpia el input de archivo
-    setError('');
+  const nuevoCandidato = {
+    id: Date.now(),
+    nombre: nombre.trim(),
+    correo: correo.trim(),
+    cargo: cargo.trim(),
+    familiaCargo,
+    cvAdjunto: cvFile ? cvFile.name : null,
+    estado: 'Nuevo',
+    fechaRegistro: new Date().toISOString().split('T')[0]
   };
+
+  onAddCandidato(nuevoCandidato);
+  setNombre('');
+  setCorreo('');
+  setCargo('');
+  setCvFile(null);
+  setFileInputKey((k) => k + 1);
+  setError('');
+};
 
   return (
     <form
