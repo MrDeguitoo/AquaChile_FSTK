@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = 'http://localhost:5000/api';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({

@@ -3,7 +3,10 @@ import cors from 'cors';
 import multer from 'multer';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, extname } from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const { Pool } = pg;
 
@@ -11,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 5000;
 
 // Configuración de multer para subida de archivos
 const storage = multer.diskStorage({
@@ -20,19 +23,34 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
+    const ext = extname(file.originalname);
+    cb(null, `cv-${uniqueSuffix}${ext}`);
+  },
 });
 
-const upload = multer({ storage });
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['.pdf', '.doc', '.docx'];
+  const ext = extname(file.originalname).toLowerCase();
+  if (allowedTypes.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Formato no permitido. Solo se aceptan archivos .pdf, .doc y .docx'), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+});
 
 // Pool de conexiones PostgreSQL
 const pool = new Pool({
-  user: 'aquachile_user',
-  host: 'localhost',
-  database: 'aquachile_psicolaboral',
-  password: 'aquachile_password',
-  port: 5432,
+  user: process.env.DB_USER || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'aquachile_db',
+  password: process.env.DB_PASSWORD || 'aquachile_secure_pass',
+  port: process.env.DB_PORT || 5432,
 });
 
 // Middleware
@@ -71,7 +89,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
 // GET /api/candidatos - Listar todos los candidatos
 app.get('/api/candidatos', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM candidatos ORDER BY fecha_registro DESC');
+    const result = await pool.query('SELECT * FROM candidatos ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener candidatos:', error);
@@ -82,14 +100,14 @@ app.get('/api/candidatos', async (req, res) => {
 // POST /api/candidatos - Crear nuevo candidato
 app.post('/api/candidatos', upload.single('cv'), async (req, res) => {
   try {
-    const { nombre, correo, cargo, familia_cargo } = req.body;
+    const { nombre, email, cargo, familia_cargo } = req.body;
     const cv_adjunto = req.file ? req.file.filename : null;
 
     const result = await pool.query(
-      `INSERT INTO candidatos (nombre, correo, cargo, familia_cargo, cv_adjunto)
+      `INSERT INTO candidatos (nombre, email, cargo, familia_cargo, cv_url)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [nombre, correo, cargo, familia_cargo, cv_adjunto]
+      [nombre, email, cargo, familia_cargo, cv_adjunto]
     );
 
     res.status(201).json(result.rows[0]);
@@ -107,7 +125,7 @@ app.post('/api/candidatos', upload.single('cv'), async (req, res) => {
 app.get('/api/solicitudes', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.*, c.nombre as candidato_nombre, c.correo as candidato_correo
+      SELECT s.*, c.nombre as candidato_nombre, c.email as candidato_correo
       FROM solicitudes s
       LEFT JOIN candidatos c ON s.candidato_id = c.id
       ORDER BY s.fecha_solicitud DESC
