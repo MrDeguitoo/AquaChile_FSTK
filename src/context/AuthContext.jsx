@@ -1,17 +1,23 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('aquachile_session');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    try {
+      const savedUser = localStorage.getItem('aquachile_session');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (e) {
+      console.error('Sesión corrupta, limpiando localStorage:', e);
+      localStorage.removeItem('aquachile_session');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = (userData) => {

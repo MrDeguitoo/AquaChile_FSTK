@@ -2,8 +2,8 @@ const ESTADO_CLASES = {
   'Pendiente': 'bg-amber-100 text-amber-800',
   'En Proceso': 'bg-blue-100 text-blue-800',
   'Finalizada': 'bg-emerald-100 text-emerald-800',
-  'Completada': 'bg-emerald-100 text-emerald-800',
   'Completado': 'bg-emerald-100 text-emerald-800',
+  'Rechazado': 'bg-red-100 text-red-800',
 };
 
 export function EstadoBadge({ estado }) {

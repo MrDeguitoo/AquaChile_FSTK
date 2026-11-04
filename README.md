@@ -4,10 +4,11 @@ Sistema Full Stack para la gestión de evaluaciones psicolaborales de AquaChile.
 
 ## Stack Tecnológico
 
-- **Frontend**: React 19 + Vite + Tailwind CSS 4 + Lucide React
+- **Frontend**: React 19 + Vite + Tailwind CSS 4 + Lucide React + React Router v7
 - **Backend**: Node.js + Express + PostgreSQL
 - **Base de Datos**: PostgreSQL 15 (Docker)
 - **Contenedorización**: Docker Compose
+- **Testing**: Karma + Jasmine + @testing-library/react
 
 ## Estructura del Proyecto
 
@@ -18,14 +19,24 @@ AquaChile_FSTK/
 ├── server/
 │   ├── package.json            # Dependencias del backend
 │   ├── src/
-│   │   ├── index.js            # Servidor Express
+│   │   ├── index.js            # Servidor Express (API REST)
 │   │   └── schema.sql          # Esquema de base de datos
 │   └── uploads/                # Carpeta para CVs subidos
 └── src/
+    ├── components/
+    │   ├── candidatos/         # FormCandidato, TablaCandidatos
+    │   ├── solicitudes/        # TablaSolicitudes
+    │   ├── Navbar, Sidebar, ProtectedRoute, LoadingSpinner
+    ├── context/AuthContext.jsx # Autenticación con localStorage
+    ├── layouts/AppLayout.jsx   # Layout principal con Navbar + Sidebar
     ├── pages/
-    │   └── dashboard.jsx       # Vista del dashboard con KPIs
-    ├── data.js                 # Datos mock (para desarrollo)
-    ├── App.jsx                 # Componente principal
+    │   ├── login.jsx           # Login con validación @aquachile.cl
+    │   ├── DashboardPage.jsx   # Dashboard con KPIs desde API
+    │   ├── CandidatosPage.jsx  # CRUD candidatos conectado a API
+    │   ├── SolicitudesPage.jsx # Listado de solicitudes
+    │   └── NotFoundPage.jsx
+    ├── data.js                 # Datos mock (legacy)
+    ├── App.jsx                 # Rutas protegidas + públicas
     └── main.jsx                # Punto de entrada
 ```
 
@@ -51,9 +62,9 @@ docker compose up -d
 ```
 
 Esto creará un contenedor PostgreSQL con:
-- **Usuario**: aquachile_user
-- **Contraseña**: aquachile_password
-- **Base de datos**: aquachile_psicolaboral
+- **Usuario**: postgres
+- **Contraseña**: aquachile_secure_pass
+- **Base de datos**: aquachile_db
 - **Puerto**: 5432
 
 El esquema SQL se ejecuta automáticamente al iniciar el contenedor.
@@ -76,7 +87,7 @@ cd server && npm install && cd ..
 cd server && npm run dev
 ```
 
-El servidor se ejecutará en `http://localhost:3000`
+El servidor se ejecutará en `http://localhost:5000`
 
 ### 6. Iniciar el Frontend
 
@@ -143,12 +154,21 @@ El backend usa las siguientes variables (configuradas en `server/src/index.js`):
 
 ```javascript
 const pool = new Pool({
-  user: 'aquachile_user',
-  host: 'localhost',
-  database: 'aquachile_psicolaboral',
-  password: 'aquachile_password',
-  port: 5432,
+  user: process.env.DB_USER || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'aquachile_db',
+  password: process.env.DB_PASSWORD || 'aquachile_secure_pass',
+  port: process.env.DB_PORT || 5432,
 });
+```
+
+Para desarrollo local, crear `server/.env`:
+```env
+DB_USER=postgres
+DB_HOST=localhost
+DB_NAME=aquachile_db
+DB_PASSWORD=aquachile_secure_pass
+DB_PORT=5432
 ```
 
 ## Scripts Útiles
@@ -169,19 +189,21 @@ docker compose restart postgres-db
 
 ## Flujo de Trabajo Git
 
-La rama principal de desarrollo es `feature/dashboard-backend-docker`.
+La rama principal es `main`. Se trabaja en ramas de feature/fix.
 
 ```bash
-# Cambiar a la rama
-git checkout feature/dashboard-backend-docker
-
-# Ver cambios
+# Ver estado actual
 git status
+
+# Cambiar a rama de desarrollo
+git checkout fix/Correcciones-varias
 
 # Commit y push
 git add .
 git commit -m "feat: descripción del cambio"
-git push origin feature/dashboard-backend-docker
+git push origin fix/Correcciones-varias
+
+# Crear PR hacia main
 ```
 
 ## Licencia

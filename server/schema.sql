@@ -21,13 +21,10 @@ CREATE TABLE candidatos (
     id SERIAL PRIMARY KEY,
     rut VARCHAR(20) UNIQUE NOT NULL,
     nombre VARCHAR(100) NOT NULL,
-    correo VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
     cargo VARCHAR(100),
     familia_cargo VARCHAR(100) NOT NULL,
-    cv_adjunto VARCHAR(255),
     cv_url VARCHAR(255),
-    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -37,7 +34,7 @@ CREATE TABLE solicitudes (
     candidato_id INT REFERENCES candidatos(id) ON DELETE CASCADE,
     analista_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
     usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
-    cargo_postulado VARCHAR(100),
+    cargo_postulado VARCHAR(100) NOT NULL,
     unidad VARCHAR(100),
     ubicacion VARCHAR(100),
     estado VARCHAR(50) DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'En Proceso', 'Completado', 'Rechazado', 'Finalizada')),
@@ -61,9 +58,9 @@ INSERT INTO usuarios (nombre, email, password, rol) VALUES
 ('Analista de Reclutamiento', 'analista@aquachile.cl', '123456', 'analista'),
 ('Psicólogo Evaluador', 'psicologo@aquachile.cl', '123456', 'evaluador');
 
-INSERT INTO candidatos (rut, nombre, correo, email, familia_cargo) VALUES
-('15.420.180-5', 'Roberto Gómez', 'roberto.gomez@correo.cl', 'roberto.gomez@correo.cl', 'Operaciones'),
-('18.230.450-K', 'Camila Silva', 'camila.silva@correo.cl', 'camila.silva@correo.cl', 'Procesamiento');
+INSERT INTO candidatos (rut, nombre, email, cargo, familia_cargo) VALUES
+('15.420.180-5', 'Roberto Gómez', 'roberto.gomez@correo.cl', 'Jefe de Centro de Cultivo', 'Operaciones'),
+('18.230.450-K', 'Camila Silva', 'camila.silva@correo.cl', 'Supervisora de Calidad Planta', 'Calidad');
 
 INSERT INTO solicitudes (candidato_id, analista_id, usuario_id, cargo_postulado, estado) VALUES
 (1, 1, 1, 'Jefe de Centro de Cultivo', 'En Proceso'),
