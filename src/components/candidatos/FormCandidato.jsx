@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { UserPlus, Paperclip, Loader2, AlertCircle } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api';
+// Usar proxy de Vite en desarrollo (/api -> localhost:5000/api)
+// En producción, configurar variable de entorno VITE_API_BASE
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 // RUT chileno regex (formato: 12.345.678-9 o 12345678-9)
 const RUT_REGEX = /^\d{1,2}\.?\d{3}\.?\d{3}[-][0-9kK]{1}$/;

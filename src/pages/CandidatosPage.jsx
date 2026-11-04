@@ -3,7 +3,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import FormCandidato from '../components/candidatos/FormCandidato';
 import TablaCandidatos from '../components/candidatos/TablaCandidatos';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 function TablaSkeleton() {
   return (

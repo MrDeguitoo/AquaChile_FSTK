@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users, Clock, AlertCircle, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 function StatCardSkeleton() {
   return (

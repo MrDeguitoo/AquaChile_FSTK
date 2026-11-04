@@ -58,6 +58,19 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
+// Middleware para manejar errores de multer
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'Archivo demasiado grande. Máximo 5 MB' });
+    }
+    return res.status(400).json({ error: err.message });
+  } else if (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  next();
+});
+
 // ============================================
 // ENDPOINTS DEL DASHBOARD
 // ============================================
@@ -78,7 +91,8 @@ app.get('/api/dashboard/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({ error: error.message });
+    const message = error?.message || (error?.errors?.[0]?.message) || 'Error de conexión a la base de datos';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -93,7 +107,8 @@ app.get('/api/candidatos', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener candidatos:', error);
-    res.status(500).json({ error: error.message });
+    const message = error?.message || (error?.errors?.[0]?.message) || 'Error de conexión a la base de datos';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -155,7 +170,8 @@ app.get('/api/solicitudes', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener solicitudes:', error);
-    res.status(500).json({ error: error.message });
+    const message = error?.message || (error?.errors?.[0]?.message) || 'Error de conexión a la base de datos';
+    res.status(500).json({ error: message });
   }
 });
 
