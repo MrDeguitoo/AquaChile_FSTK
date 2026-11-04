@@ -4,7 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './layouts/AppLayout';
 
 import LoginPage from './pages/login';
-import DashboardPage from './pages/dashboard';
+import DashboardPage from './pages/Dashboard';
 import CandidatosPage from './pages/CandidatosPage';
 import SolicitudesPage from './pages/SolicitudesPage';
 import NotFoundPage from './pages/NotFoundPage';
