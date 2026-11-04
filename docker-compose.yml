@@ -1,0 +1,17 @@
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: aquachile_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: aquachile_secure_pass
+      POSTGRES_DB: aquachile_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./server/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
