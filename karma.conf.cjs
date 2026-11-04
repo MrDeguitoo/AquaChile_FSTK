@@ -1,21 +1,30 @@
+const karmaViteRaw = require('karma-vite');
+
+const vitePlugin = karmaViteRaw['framework:vite']
+? karmaViteRaw
+: (karmaViteRaw.default || karmaViteRaw);
+
 module.exports = function (config) {
-  config.set({
-    frameworks: ['jasmine'],
-    plugins: ['karma-jasmine', 'karma-chrome-launcher', 'karma-esbuild'],
-
-    files: [{ pattern: 'src/**/*.test.js', watched: false }],
-    preprocessors: {
-      'src/**/*.test.js': ['esbuild'],
-    },
-
-    esbuild: {
-      jsx: 'automatic',
-      loader: { '.js': 'jsx', '.jsx': 'jsx' },
-      define: { 'process.env.NODE_ENV': '"test"' },
-    },
-
-    browsers: ['ChromeHeadless'],
-    reporters: ['progress'],
-    singleRun: true,
-  });
-};
+    config.set({
+        frameworks: ['jasmine', 'vite'],
+        plugins: [
+            require('karma-jasmine'),
+            require('karma-chrome-launcher'),
+            require('karma-coverage'),
+            vitePlugin
+        ],
+        files: [
+            { pattern: 'src/test/**/*.spec.jsx', type: 'module' }
+        ],
+        preprocessors: {
+            'src/test/**/*.spec.jsx': ['vite']
+        },
+        reporters: ['progress', 'coverage'],
+        coverageReporter: {
+            type: 'html',
+            dir: 'coverage/'
+        },
+        browsers: ['ChromeHeadless'],
+        singleRun: true
+    });
+}
