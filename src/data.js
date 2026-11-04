@@ -4,16 +4,18 @@ export const candidatos = [
     nombre: "Juan Pérez González",
     correo: "juan.perez@email.com",
     cargo: "Operario de Planta",
-    familiaCargo: "Producción",
-    cv: "juan_perez_cv.pdf"
+    familiaCargo: "Operaciones",
+    cvAdjunto: "juan_perez_cv.pdf",
+    estado: "Nuevo"
   },
   {
     id: 2,
     nombre: "María López Silva",
     correo: "maria.lopez@email.com",
     cargo: "Supervisor de Turno",
-    familiaCargo: "Producción",
-    cv: "maria_lopez_cv.pdf"
+    familiaCargo: "Operaciones",
+    cvAdjunto: "maria_lopez_cv.pdf",
+    estado: "En Proceso"
   },
   {
     id: 3,
@@ -21,7 +23,8 @@ export const candidatos = [
     correo: "carlos.rodriguez@email.com",
     cargo: "Analista de Calidad",
     familiaCargo: "Calidad",
-    cv: "carlos_rodriguez_cv.pdf"
+    cvAdjunto: null,
+    estado: "Nuevo"
   }
 ];
 
