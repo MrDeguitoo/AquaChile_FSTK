@@ -41,6 +41,7 @@ export default function FormCandidato({ onAddCandidato }) {
     cargo: cargo.trim(),
     familiaCargo,
     cvAdjunto: cvFile ? cvFile.name : null,
+    cvFile,
     estado: 'Nuevo',
     fechaRegistro: new Date().toISOString().split('T')[0]
   };

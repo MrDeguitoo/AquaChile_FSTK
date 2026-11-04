@@ -25,3 +25,6 @@ dist-ssr
 
 # Environment variables
 server/.env
+.env
+server/uploads/*
+!server/uploads/.gitkeep
