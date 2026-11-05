@@ -137,7 +137,7 @@ Los estados válidos para las solicitudes son:
 
 ## Subida de Archivos
 
-Los CVs se suben a la carpeta `server/uploads/` y son accesibles vía `http://localhost:3000/uploads/<filename>`.
+Los CVs se suben a la carpeta `server/uploads/` y son accesibles vía `http://localhost:5000/uploads/<filename>`.
 
 ## Desarrollo
 
@@ -199,7 +199,7 @@ docker compose restart postgres-db
 Los siguientes documentos están disponibles en la carpeta [`docs/`](docs/):
 
 ### Especificaciones y Evidencias
-- **[Especificación de Requisitos de Software (ERS)](docs/Especificaci%C3%B3n%20de%20Requisitos%20de%20Software%20(ERS).pdf)** — Documento técnico con los requisitos funcionales, no funcionales, casos de uso, reglas de negocio y arquitectura del sistema.
+- **[Especificación de Requisitos de Software (ERS)](docs/Especificaci%C3%B3n%20de%20Requisitos%20de%20Software%20(ERS).pdf)** — Documento técnico con requisitos funcionales, no funcionales, alcance del sistema, correspondencia con stakeholders y matriz de trazabilidad.
 - **[Evidencia de Vitest](docs/Evidencia%20de%20Vitest.pdf)** — Capturas y resultados de la suite de pruebas automatizadas (57 tests pasando) con Vitest + @testing-library/react.
 
 ### Colecciones Postman
