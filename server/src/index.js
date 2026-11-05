@@ -58,7 +58,17 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
-// Middleware para manejar errores de multer
+// Helper para extraer mensaje de error (incluye AggregateError de pg-pool)
+function getErrorMessage(error) {
+  if (!error) return 'Error desconocido';
+  if (error.message) return error.message;
+  if (error.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+    return error.errors[0]?.message || error.errors[0]?.toString() || 'Error de base de datos';
+  }
+  return error.toString();
+}
+
+// Middleware para manejar errores de multer (DEBE ir antes de las rutas)
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -91,7 +101,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
-    const message = error?.message || (error?.errors?.[0]?.message) || 'Error de conexión a la base de datos';
+    const message = getErrorMessage(error);
     res.status(500).json({ error: message });
   }
 });
@@ -107,7 +117,7 @@ app.get('/api/candidatos', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener candidatos:', error);
-    const message = error?.message || (error?.errors?.[0]?.message) || 'Error de conexión a la base de datos';
+    const message = getErrorMessage(error);
     res.status(500).json({ error: message });
   }
 });
@@ -138,7 +148,7 @@ app.post('/api/candidatos', upload.single('cv'), async (req, res) => {
       const field = error.constraint?.includes('rut') ? 'RUT' : 'email';
       return res.status(409).json({ error: `El ${field} ya está registrado` });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -170,7 +180,7 @@ app.get('/api/solicitudes', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener solicitudes:', error);
-    const message = error?.message || (error?.errors?.[0]?.message) || 'Error de conexión a la base de datos';
+    const message = getErrorMessage(error);
     res.status(500).json({ error: message });
   }
 });

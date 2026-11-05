@@ -159,8 +159,9 @@ export default function FormCandidato({ onCandidatoCreated }) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Familia de Cargo</label>
+          <label htmlFor="familia-cargo" className="block text-xs font-semibold text-gray-600 uppercase mb-1">Familia de Cargo</label>
           <select
+            id="familia-cargo"
             value={familiaCargo}
             onChange={(e) => setFamiliaCargo(e.target.value)}
             className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -174,11 +175,13 @@ export default function FormCandidato({ onCandidatoCreated }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">
+        <label htmlFor="cv-file" className="block text-xs font-semibold text-gray-600 uppercase mb-1">
           Adjuntar Curriculum Vitae (CV) (.pdf, .doc, .docx)
         </label>
         <div className="flex items-center space-x-3">
           <input
+            id="cv-file"
+            data-testid="cv-file-input"
             key={fileInputKey}
             type="file"
             accept=".pdf,.doc,.docx"

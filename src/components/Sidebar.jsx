@@ -27,7 +27,7 @@ export default function Sidebar({ mobileOpen, closeMobile }) {
     <aside className={`bg-white border-r border-gray-200 p-4 ${mobileOpen ? 'block' : 'hidden'} md:block`}>
       {/* Badge de Rol */}
       <div className="mb-5 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center space-x-2.5">
-        <RoleIcon className={`w-5 h-5 ${roleConfig.color} flex-shrink-0`} />
+        <RoleIcon className={`w-5 h-5 ${roleConfig.color} flex-shrink-0`} data-testid="role-icon" />
         <div className="overflow-hidden">
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Perfil Actual</p>
           <p className="text-xs font-semibold text-gray-800 truncate capitalize">
