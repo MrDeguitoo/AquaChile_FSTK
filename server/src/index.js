@@ -122,8 +122,23 @@ app.get('/api/candidatos', async (req, res) => {
   }
 });
 
+// Wrapper para manejar errores de multer en fileFilter (que no pasan por error middleware)
+const handleMulterUpload = (req, res, next) => {
+  upload.single('cv')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Archivo demasiado grande. Máximo 5 MB' });
+      }
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
 // POST /api/candidatos - Crear nuevo candidato
-app.post('/api/candidatos', upload.single('cv'), async (req, res) => {
+app.post('/api/candidatos', handleMulterUpload, async (req, res) => {
   try {
     const { nombre, email, cargo, familia_cargo, rut } = req.body;
     const cv_adjunto = req.file ? req.file.filename : null;
@@ -134,10 +149,10 @@ app.post('/api/candidatos', upload.single('cv'), async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO candidatos (rut, nombre, email, cargo, familia_cargo, cv_url, correo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO candidatos (rut, nombre, email, cargo, familia_cargo, cv_url)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [rut.trim(), nombre, email, cargo, familia_cargo, cv_adjunto, email]
+      [rut.trim(), nombre, email, cargo, familia_cargo, cv_adjunto]
     );
 
     res.status(201).json(result.rows[0]);
