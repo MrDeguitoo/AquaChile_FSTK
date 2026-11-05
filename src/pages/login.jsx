@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
 
+// Regex estricta para emails @aquachile.cl
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@aquachile\.cl$/;
+
 export default function LoginPage() {
   const [role, setRole] = useState('analista');
   const [email, setEmail] = useState('analista@aquachile.cl');
@@ -21,7 +24,7 @@ export default function LoginPage() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      if (!email.includes('@aquachile.cl')) {
+      if (!EMAIL_REGEX.test(email)) {
         throw new Error('Debe utilizar un correo corporativo institucional (@aquachile.cl)');
       }
 

@@ -58,6 +58,29 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
+// Helper para extraer mensaje de error (incluye AggregateError de pg-pool)
+function getErrorMessage(error) {
+  if (!error) return 'Error desconocido';
+  if (error.message) return error.message;
+  if (error.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+    return error.errors[0]?.message || error.errors[0]?.toString() || 'Error de base de datos';
+  }
+  return error.toString();
+}
+
+// Middleware para manejar errores de multer (DEBE ir antes de las rutas)
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'Archivo demasiado grande. Máximo 5 MB' });
+    }
+    return res.status(400).json({ error: err.message });
+  } else if (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  next();
+});
+
 // ============================================
 // ENDPOINTS DEL DASHBOARD
 // ============================================
@@ -78,7 +101,8 @@ app.get('/api/dashboard/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({ error: error.message });
+    const message = getErrorMessage(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -93,27 +117,53 @@ app.get('/api/candidatos', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener candidatos:', error);
-    res.status(500).json({ error: error.message });
+    const message = getErrorMessage(error);
+    res.status(500).json({ error: message });
   }
 });
 
+// Wrapper para manejar errores de multer en fileFilter (que no pasan por error middleware)
+const handleMulterUpload = (req, res, next) => {
+  upload.single('cv')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Archivo demasiado grande. Máximo 5 MB' });
+      }
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
 // POST /api/candidatos - Crear nuevo candidato
-app.post('/api/candidatos', upload.single('cv'), async (req, res) => {
+app.post('/api/candidatos', handleMulterUpload, async (req, res) => {
   try {
-    const { nombre, email, cargo, familia_cargo } = req.body;
+    const { nombre, email, cargo, familia_cargo, rut } = req.body;
     const cv_adjunto = req.file ? req.file.filename : null;
 
+    // Validar rut obligatorio
+    if (!rut || !rut.trim()) {
+      return res.status(400).json({ error: 'El RUT es obligatorio' });
+    }
+
     const result = await pool.query(
-      `INSERT INTO candidatos (nombre, email, cargo, familia_cargo, cv_url)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO candidatos (rut, nombre, email, cargo, familia_cargo, cv_url)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [nombre, email, cargo, familia_cargo, cv_adjunto]
+      [rut.trim(), nombre, email, cargo, familia_cargo, cv_adjunto]
     );
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error al crear candidato:', error);
-    res.status(500).json({ error: error.message });
+    // Manejar error de duplicado de RUT o email
+    if (error.code === '23505') {
+      const field = error.constraint?.includes('rut') ? 'RUT' : 'email';
+      return res.status(409).json({ error: `El ${field} ya está registrado` });
+    }
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -125,7 +175,19 @@ app.post('/api/candidatos', upload.single('cv'), async (req, res) => {
 app.get('/api/solicitudes', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT s.*, c.nombre as candidato_nombre, c.email as candidato_correo
+      SELECT
+        s.id,
+        s.candidato_id,
+        s.analista_id,
+        s.usuario_id,
+        s.cargo_postulado,
+        s.unidad,
+        s.ubicacion,
+        s.estado,
+        s.fecha_solicitud,
+        s.observaciones,
+        c.nombre as candidato_nombre,
+        c.email as candidato_correo
       FROM solicitudes s
       LEFT JOIN candidatos c ON s.candidato_id = c.id
       ORDER BY s.fecha_solicitud DESC
@@ -133,7 +195,8 @@ app.get('/api/solicitudes', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener solicitudes:', error);
-    res.status(500).json({ error: error.message });
+    const message = getErrorMessage(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -143,9 +206,13 @@ app.put('/api/solicitudes/:id', async (req, res) => {
     const { id } = req.params;
     const { estado } = req.body;
 
-    const validEstados = ['Pendiente', 'En Proceso', 'Completado', 'Finalizada'];
+    // Estados válidos según schema.sql CHECK constraint
+    const validEstados = ['Pendiente', 'En Proceso', 'Completado', 'Finalizada', 'Rechazado'];
     if (!validEstados.includes(estado)) {
-      return res.status(400).json({ error: 'Estado inválido. Estados válidos: Pendiente, En Proceso, Completado, Finalizada' });
+      return res.status(400).json({
+        error: 'Estado inválido',
+        validEstados
+      });
     }
 
     const result = await pool.query(
@@ -167,13 +234,20 @@ app.put('/api/solicitudes/:id', async (req, res) => {
 // POST /api/solicitudes - Crear nueva solicitud
 app.post('/api/solicitudes', async (req, res) => {
   try {
-    const { candidato_id, analista_id, unidad, ubicacion, observaciones } = req.body;
+    const { candidato_id, analista_id, usuario_id, cargo_postulado, unidad, ubicacion, observaciones } = req.body;
+
+    // Validaciones básicas
+    if (!candidato_id || !analista_id || !cargo_postulado) {
+      return res.status(400).json({
+        error: 'Campos obligatorios: candidato_id, analista_id, cargo_postulado'
+      });
+    }
 
     const result = await pool.query(
-      `INSERT INTO solicitudes (candidato_id, analista_id, unidad, ubicacion, observaciones)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO solicitudes (candidato_id, analista_id, usuario_id, cargo_postulado, unidad, ubicacion, observaciones)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [candidato_id, analista_id, unidad, ubicacion, observaciones]
+      [candidato_id, analista_id, usuario_id || analista_id, cargo_postulado, unidad, ubicacion, observaciones]
     );
 
     res.status(201).json(result.rows[0]);

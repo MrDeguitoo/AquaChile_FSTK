@@ -1,58 +1,98 @@
 import { useState } from 'react';
-import { UserPlus, Paperclip } from 'lucide-react';
+import { UserPlus, Paperclip, Loader2, AlertCircle } from 'lucide-react';
 
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+// Usar proxy de Vite en desarrollo (/api -> localhost:5000/api)
+// En producción, configurar variable de entorno VITE_API_BASE
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+
+// RUT chileno regex (formato: 12.345.678-9 o 12345678-9)
+const RUT_REGEX = /^\d{1,2}\.?\d{3}\.?\d{3}[-][0-9kK]{1}$/;
+// Email corporativo @aquachile.cl
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@aquachile\.cl$/;
 const EXTENSIONES_CV = ['pdf', 'doc', 'docx'];
 
-export default function FormCandidato({ onAddCandidato }) {
+export default function FormCandidato({ onCandidatoCreated }) {
   const [nombre, setNombre] = useState('');
-  const [correo, setCorreo] = useState('');
+  const [rut, setRut] = useState('');
+  const [email, setEmail] = useState('');
   const [cargo, setCargo] = useState('');
   const [familiaCargo, setFamiliaCargo] = useState('Operaciones');
   const [cvFile, setCvFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-  if (!nombre.trim() || !correo.trim() || !cargo.trim()) {
-    setError('Por favor completa todos los campos obligatorios.');
-    return;
-  }
-
-  if (!EMAIL_REGEX.test(correo.trim())) {
-    setError('Ingresa un correo electrónico con formato válido (ej. usuario@aquachile.cl).');
-    return;
-  }
-
-  if (cvFile) {
-    const fileExt = cvFile.name.split('.').pop().toLowerCase();
-    if (!EXTENSIONES_CV.includes(fileExt)) {
-      setError('Formato de CV no permitido. Sube un archivo .pdf, .doc o .docx');
+    // Validaciones
+    if (!nombre.trim() || !rut.trim() || !email.trim() || !cargo.trim()) {
+      setError('Por favor completa todos los campos obligatorios (incluyendo RUT).');
       return;
     }
-  }
 
-  const nuevoCandidato = {
-    id: Date.now(),
-    nombre: nombre.trim(),
-    correo: correo.trim(),
-    cargo: cargo.trim(),
-    familiaCargo,
-    cvAdjunto: cvFile ? cvFile.name : null,
-    estado: 'Nuevo',
-    fechaRegistro: new Date().toISOString().split('T')[0]
+    if (!RUT_REGEX.test(rut.trim())) {
+      setError('Formato de RUT inválido. Use formato: 12.345.678-9');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setError('Debe utilizar un correo corporativo institucional (@aquachile.cl).');
+      return;
+    }
+
+    if (cvFile) {
+      const fileExt = cvFile.name.split('.').pop().toLowerCase();
+      if (!EXTENSIONES_CV.includes(fileExt)) {
+        setError('Formato de CV no permitido. Sube un archivo .pdf, .doc o .docx');
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('nombre', nombre.trim());
+      formData.append('rut', rut.trim());
+      formData.append('email', email.trim());
+      formData.append('cargo', cargo.trim());
+      formData.append('familia_cargo', familiaCargo);
+      if (cvFile) {
+        formData.append('cv', cvFile);
+      }
+
+      const res = await fetch(`${API_BASE}/candidatos`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al crear candidato');
+      }
+
+      // Limpiar formulario
+      setNombre('');
+      setRut('');
+      setEmail('');
+      setCargo('');
+      setCvFile(null);
+      setFileInputKey((k) => k + 1);
+
+      // Notificar al padre para actualizar lista
+      if (onCandidatoCreated) {
+        onCandidatoCreated(data);
+      }
+    } catch (err) {
+      console.error('Error al crear candidato:', err);
+      setError(err.message || 'Error al guardar el candidato');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  onAddCandidato(nuevoCandidato);
-  setNombre('');
-  setCorreo('');
-  setCargo('');
-  setCvFile(null);
-  setFileInputKey((k) => k + 1);
-  setError('');
-};
 
   return (
     <form
@@ -65,9 +105,26 @@ export default function FormCandidato({ onAddCandidato }) {
         <span>Registrar Nuevo Candidato</span>
       </h3>
 
-      {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">RUT *</label>
+          <input
+            type="text"
+            value={rut}
+            onChange={(e) => setRut(e.target.value)}
+            className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            placeholder="12.345.678-9"
+            maxLength={12}
+          />
+        </div>
+
         <div>
           <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Nombre Completo *</label>
           <input
@@ -80,13 +137,13 @@ export default function FormCandidato({ onAddCandidato }) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Correo Electrónico *</label>
+          <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Correo Corporativo *</label>
           <input
             type="email"
-            value={correo}
-            onChange={(e) => setCorreo(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-            placeholder="mgonzalez@ejemplo.com"
+            placeholder="mgonzalez@aquachile.cl"
           />
         </div>
 
@@ -102,8 +159,9 @@ export default function FormCandidato({ onAddCandidato }) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Familia de Cargo</label>
+          <label htmlFor="familia-cargo" className="block text-xs font-semibold text-gray-600 uppercase mb-1">Familia de Cargo</label>
           <select
+            id="familia-cargo"
             value={familiaCargo}
             onChange={(e) => setFamiliaCargo(e.target.value)}
             className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -117,11 +175,13 @@ export default function FormCandidato({ onAddCandidato }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">
+        <label htmlFor="cv-file" className="block text-xs font-semibold text-gray-600 uppercase mb-1">
           Adjuntar Curriculum Vitae (CV) (.pdf, .doc, .docx)
         </label>
         <div className="flex items-center space-x-3">
           <input
+            id="cv-file"
+            data-testid="cv-file-input"
             key={fileInputKey}
             type="file"
             accept=".pdf,.doc,.docx"
@@ -139,9 +199,17 @@ export default function FormCandidato({ onAddCandidato }) {
 
       <button
         type="submit"
-        className="w-full md:w-auto px-6 py-2.5 bg-blue-900 hover:bg-blue-800 text-white font-medium rounded-lg text-sm transition-colors"
+        disabled={loading}
+        className="w-full md:w-auto px-6 py-2.5 bg-blue-900 hover:bg-blue-800 text-white font-medium rounded-lg text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
       >
-        Guardar Candidato
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Guardando...</span>
+          </>
+        ) : (
+          'Guardar Candidato'
+        )}
       </button>
     </form>
   );
