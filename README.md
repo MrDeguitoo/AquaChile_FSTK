@@ -8,7 +8,7 @@ Sistema Full Stack para la gestión de evaluaciones psicolaborales de AquaChile.
 - **Backend**: Node.js + Express + PostgreSQL
 - **Base de Datos**: PostgreSQL 15 (Docker)
 - **Contenedorización**: Docker Compose
-- **Testing**: Karma + Jasmine + @testing-library/react
+- **Testing**: Vitest + @testing-library/react + @testing-library/jest-dom
 
 ## Estructura del Proyecto
 
