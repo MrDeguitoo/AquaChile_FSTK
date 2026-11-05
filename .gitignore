@@ -25,3 +25,10 @@ dist-ssr
 
 # Environment variables
 server/.env
+
+# Test coverage
+coverage/
+
+# Uploaded files (keep directory structure)
+server/uploads/*
+!server/uploads/.gitkeep
