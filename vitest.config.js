@@ -15,12 +15,12 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{js,jsx}'],
       exclude: [
-        'node_modules/',
-        'src/test/setup.js',
+        'src/test/**',
+        'src/**/*.test.{js,jsx}',
         'src/main.jsx',
-        'src/App.jsx',
-        '*.config.js',
+        'src/data.js',
       ],
     },
   },

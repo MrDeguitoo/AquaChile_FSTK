@@ -16,6 +16,13 @@ Sistema Full Stack para la gestión de evaluaciones psicolaborales de AquaChile.
 AquaChile_FSTK/
 ├── docker-compose.yml          # Configuración de PostgreSQL
 ├── package.json                # Dependencias del frontend
+├── docs/                       # Documentación del proyecto (PDFs)
+│   ├── Especificación de Requisitos de Software (ERS).pdf
+│   └── Evidencia de Vitest.pdf
+├── postman/                    # Colecciones y environments Postman
+│   ├── collections/
+│   ├── environments/
+│   └── globals/
 ├── server/
 │   ├── package.json            # Dependencias del backend
 │   ├── src/
@@ -25,7 +32,7 @@ AquaChile_FSTK/
 └── src/
     ├── components/
     │   ├── candidatos/         # FormCandidato, TablaCandidatos
-    │   ├── solicitudes/        # TablaSolicitudes
+    │   ├── solicitudes/        # FormSolicitud, TablaSolicitudes
     │   ├── Navbar, Sidebar, ProtectedRoute, LoadingSpinner
     ├── context/AuthContext.jsx # Autenticación con localStorage
     ├── layouts/AppLayout.jsx   # Layout principal con Navbar + Sidebar
@@ -33,7 +40,7 @@ AquaChile_FSTK/
     │   ├── login.jsx           # Login con validación @aquachile.cl
     │   ├── DashboardPage.jsx   # Dashboard con KPIs desde API
     │   ├── CandidatosPage.jsx  # CRUD candidatos conectado a API
-    │   ├── SolicitudesPage.jsx # Listado de solicitudes
+    │   ├── SolicitudesPage.jsx # CRUD solicitudes + cambio de estado
     │   └── NotFoundPage.jsx
     ├── data.js                 # Datos mock (legacy)
     ├── App.jsx                 # Rutas protegidas + públicas
@@ -186,6 +193,21 @@ docker compose down -v
 # Reiniciar la base de datos
 docker compose restart postgres-db
 ```
+
+## Documentación del Proyecto
+
+Los siguientes documentos están disponibles en la carpeta [`docs/`](docs/):
+
+### Especificaciones y Evidencias
+- **[Especificación de Requisitos de Software (ERS)](docs/Especificaci%C3%B3n%20de%20Requisitos%20de%20Software%20(ERS).pdf)** — Documento técnico con los requisitos funcionales, no funcionales, casos de uso, reglas de negocio y arquitectura del sistema.
+- **[Evidencia de Vitest](docs/Evidencia%20de%20Vitest.pdf)** — Capturas y resultados de la suite de pruebas automatizadas (57 tests pasando) con Vitest + @testing-library/react.
+
+### Colecciones Postman
+La carpeta [`postman/`](postman/) contiene la configuración para probar la API REST:
+- **Environment**: `New Collection` — Variable `baseUrl` apuntando a `http://localhost:5000`
+- **Collections**: Definición de endpoints en `collections/New Collection/.resources/definition.yaml`
+
+> **Nota**: Para importar en Postman, usar `File > Import` y seleccionar los archivos `.yaml` de la carpeta `postman/`.
 
 ## Flujo de Trabajo Git
 
