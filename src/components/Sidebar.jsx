@@ -41,7 +41,7 @@ export default function Sidebar({ mobileOpen, closeMobile }) {
       </p>
 
       <nav className="space-y-1">
-        <NavLink to="/" onClick={closeMobile} className={linkClass}>
+        <NavLink to="/dashboard" onClick={closeMobile} className={linkClass}>
           <LayoutDashboard className="w-4 h-4" />
           <span>Dashboard</span>
         </NavLink>

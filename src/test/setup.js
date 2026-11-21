@@ -3,6 +3,15 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
+// Mock import.meta.env for Vite environment variables
+vi.stubGlobal('import', {
+  meta: {
+    env: {
+      VITE_API_BASE: '/api',
+    },
+  },
+});
+
 // Hacer React disponible globalmente para JSX runtime automático
 global.React = React;
 

@@ -27,6 +27,14 @@ describe('FormSolicitud', () => {
     unidad = 'CECO Planta Norte',
     ubicacion = 'Puerto Montt',
     observaciones = 'Observaciones de prueba',
+    // New fields for calendar/email
+    programarEvaluacion = false,
+    fechaEvaluacion = '',
+    horaEvaluacion = '09:00',
+    duracionEvaluacion = 90,
+    zonaHoraria = 'America/Santiago',
+    notificarAnalista = false,
+    notificarEvaluacion = false,
   } = {}) => {
     const user = userEvent.setup();
 
@@ -43,6 +51,17 @@ describe('FormSolicitud', () => {
     await user.type(screen.getByPlaceholderText(/CECO Planta Norte/i), unidad);
     await user.type(screen.getByPlaceholderText(/Puerto Montt/i), ubicacion);
     await user.type(screen.getByPlaceholderText(/Notas adicionales/i), observaciones);
+
+    // Calendar picker fields (if visible)
+    if (programarEvaluacion) {
+      if (fechaEvaluacion) {
+        await user.type(screen.getByLabelText(/Fecha \*/i), fechaEvaluacion);
+      }
+      if (horaEvaluacion) {
+        await user.type(screen.getByLabelText(/Hora \*/i), horaEvaluacion);
+      }
+      // Duration and timezone are selects, might need different handling
+    }
   };
 
   it('renderiza todos los campos del formulario correctamente', () => {
@@ -112,10 +131,10 @@ describe('FormSolicitud', () => {
       fecha_solicitud: '2026-09-15',
     };
 
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    });
+    // Mock: 1. create solicitud, 2. send notification email (enabled by default)
+    global.fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => mockResponse }) // create solicitud
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) }); // send notification email
 
     render(
       <FormSolicitud
@@ -129,7 +148,7 @@ describe('FormSolicitud', () => {
     await userEvent.click(screen.getByRole('button', { name: /Crear Solicitud/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledTimes(2); // solicitud + notification email
     });
 
     await waitFor(() => {
@@ -184,7 +203,9 @@ describe('FormSolicitud', () => {
     const fetchPromise = new Promise((resolve) => {
       resolveFetch = resolve;
     });
-    global.fetch.mockReturnValueOnce(fetchPromise);
+    global.fetch
+      .mockReturnValueOnce(fetchPromise) // create solicitud
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) }); // send notification email
 
     render(
       <FormSolicitud
@@ -210,10 +231,9 @@ describe('FormSolicitud', () => {
   });
 
   it('limpia el formulario después de crear exitosamente', async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ id: 1, estado: 'Pendiente' }),
-    });
+    global.fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 1, estado: 'Pendiente' }) }) // create solicitud
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) }); // send notification email
 
     render(
       <FormSolicitud

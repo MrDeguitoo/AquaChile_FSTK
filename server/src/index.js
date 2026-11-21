@@ -1,12 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const { Pool } = pg;
 
@@ -15,6 +15,19 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Service modules will be loaded dynamically after dotenv.config()
+// We'll initialize them lazily when first needed
+let emailService, calendarService, driveService;
+
+async function loadServices() {
+  if (!emailService) {
+    emailService = await import('./services/email.js');
+    calendarService = await import('./services/calendar.js');
+    driveService = await import('./services/drive.js');
+  }
+  return { emailService, calendarService, driveService };
+}
 
 // Configuración de multer para subida de archivos
 const storage = multer.diskStorage({
@@ -285,6 +298,419 @@ app.post('/api/usuarios', async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error al crear usuario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// EMAIL ENDPOINTS (Resend)
+// ============================================
+
+// POST /api/email/send - Send generic email
+app.post('/api/email/send', async (req, res) => {
+  try {
+    await loadServices();
+    const { to, subject, html, text } = req.body;
+
+    if (!to || !subject || !html) {
+      return res.status(400).json({ error: 'Campos obligatorios: to, subject, html' });
+    }
+
+    const result = await emailService.sendEmail({ to, subject, html, text });
+    if (result.success) {
+      res.json({ success: true, data: result.data });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error en endpoint de email:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/email/candidate-confirmation - Send candidate welcome email
+app.post('/api/email/candidate-confirmation', async (req, res) => {
+  try {
+    await loadServices();
+    const { candidate } = req.body;
+
+    if (!candidate || !candidate.email) {
+      return res.status(400).json({ error: 'Datos de candidato requeridos (email obligatorio)' });
+    }
+
+    const result = await emailService.sendCandidateConfirmation(candidate);
+    if (result.success) {
+      res.json({ success: true, data: result.data });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error enviando confirmación de candidato:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/email/solicitud-notification - Notify analista of new solicitud
+app.post('/api/email/solicitud-notification', async (req, res) => {
+  try {
+    await loadServices();
+    const { solicitud, analista, candidato } = req.body;
+
+    if (!solicitud || !analista || !candidato) {
+      return res.status(400).json({ error: 'Datos requeridos: solicitud, analista, candidato' });
+    }
+
+    const result = await emailService.sendSolicitudNotification(solicitud, analista, candidato);
+    if (result.success) {
+      res.json({ success: true, data: result.data });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error enviando notificación de solicitud:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/email/status-update - Send status change notification
+app.post('/api/email/status-update', async (req, res) => {
+  try {
+    await loadServices();
+    const { solicitud, oldStatus, newStatus, candidato, analista } = req.body;
+
+    if (!solicitud || !oldStatus || !newStatus || !candidato || !analista) {
+      return res.status(400).json({ error: 'Datos requeridos: solicitud, oldStatus, newStatus, candidato, analista' });
+    }
+
+    const result = await emailService.sendStatusUpdateEmail(solicitud, oldStatus, newStatus, candidato, analista);
+    if (result.success) {
+      res.json({ success: true, data: result.data });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error enviando actualización de estado:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/email/evaluation-scheduled - Send evaluation scheduled confirmation
+app.post('/api/email/evaluation-scheduled', async (req, res) => {
+  try {
+    await loadServices();
+    const { solicitud, eventDetails, candidato, analista } = req.body;
+
+    if (!solicitud || !eventDetails || !candidato || !analista) {
+      return res.status(400).json({ error: 'Datos requeridos: solicitud, eventDetails, candidato, analista' });
+    }
+
+    const result = await emailService.sendEvaluationScheduledEmail(solicitud, eventDetails, candidato, analista);
+    if (result.success) {
+      res.json({ success: true, data: result.data });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error enviando confirmación de evaluación programada:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// GOOGLE CALENDAR ENDPOINTS
+// ============================================
+
+// POST /api/calendar/events - Create calendar event
+app.post('/api/calendar/events', async (req, res) => {
+  try {
+    await loadServices();
+    const { summary, description, start, end, attendees, location, calendarId } = req.body;
+
+    if (!summary || !start || !end) {
+      return res.status(400).json({ error: 'Campos obligatorios: summary, start, end' });
+    }
+
+    const result = await calendarService.createEvent({
+      summary,
+      description,
+      start,
+      end,
+      attendees,
+      location,
+      calendarId,
+    });
+
+    if (result.success) {
+      res.status(201).json({ success: true, event: result.event });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error creando evento de calendario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/calendar/evaluation - Create evaluation event from solicitud data
+app.post('/api/calendar/evaluation', async (req, res) => {
+  try {
+    await loadServices();
+    const { solicitud, candidato, analista, evaluador, startDate, durationMinutes } = req.body;
+
+    if (!solicitud || !candidato || !analista || !startDate) {
+      return res.status(400).json({ error: 'Datos requeridos: solicitud, candidato, analista, startDate' });
+    }
+
+    const result = await calendarService.createEvaluationEvent(
+      solicitud,
+      candidato,
+      analista,
+      evaluador,
+      new Date(startDate),
+      durationMinutes
+    );
+
+    if (result.success) {
+      res.status(201).json({ success: true, event: result.event });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error creando evento de evaluación:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/calendar/events - List upcoming events
+app.get('/api/calendar/events', async (req, res) => {
+  try {
+    await loadServices();
+    const { timeMin, timeMax, maxResults, calendarId } = req.query;
+
+    const result = await calendarService.listEvents({
+      timeMin: timeMin ? new Date(timeMin) : undefined,
+      timeMax: timeMax ? new Date(timeMax) : undefined,
+      maxResults: maxResults ? parseInt(maxResults) : undefined,
+      calendarId,
+    });
+
+    if (result.success) {
+      res.json({ success: true, events: result.events });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error listando eventos de calendario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/calendar/events/:id - Get specific event
+app.get('/api/calendar/events/:id', async (req, res) => {
+  try {
+    await loadServices();
+    const { id } = req.params;
+    const { calendarId } = req.query;
+
+    const result = await calendarService.getEvent(id, calendarId);
+
+    if (result.success) {
+      res.json({ success: true, event: result.event });
+    } else {
+      res.status(404).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error obteniendo evento de calendario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/calendar/events/:id - Update event
+app.put('/api/calendar/events/:id', async (req, res) => {
+  try {
+    await loadServices();
+    const { id } = req.params;
+    const { calendarId, ...updates } = req.body;
+
+    const result = await calendarService.updateEvent(id, updates, calendarId);
+
+    if (result.success) {
+      res.json({ success: true, event: result.event });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error actualizando evento de calendario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/calendar/events/:id - Delete event
+app.delete('/api/calendar/events/:id', async (req, res) => {
+  try {
+    await loadServices();
+    const { id } = req.params;
+    const { calendarId } = req.query;
+
+    const result = await calendarService.deleteEvent(id, calendarId);
+
+    if (result.success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error eliminando evento de calendario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// GOOGLE DRIVE ENDPOINTS
+// ============================================
+
+// POST /api/drive/upload - Upload file to Drive
+app.post('/api/drive/upload', upload.single('file'), async (req, res) => {
+  try {
+    await loadServices();
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se proporcionó ningún archivo' });
+    }
+
+    const { folderId } = req.body;
+
+    const result = await driveService.uploadFile({
+      name: req.file.originalname,
+      mimeType: req.file.mimetype,
+      content: req.file.buffer,
+      folderId,
+    });
+
+    if (result.success) {
+      res.status(201).json({ success: true, file: result.file });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error subiendo archivo a Drive:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/drive/candidate-cv - Upload candidate CV to Drive
+app.post('/api/drive/candidate-cv', upload.single('cv'), async (req, res) => {
+  try {
+    await loadServices();
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se proporcionó ningún archivo CV' });
+    }
+
+    const { candidato } = req.body;
+
+    if (!candidato) {
+      return res.status(400).json({ error: 'Datos de candidato requeridos' });
+    }
+
+    const candidatoData = typeof candidato === 'string' ? JSON.parse(candidato) : candidato;
+
+    const result = await driveService.uploadCandidateCV(req.file, candidatoData);
+
+    if (result.success) {
+      // Update candidate record with Drive file ID
+      if (result.file && result.file.id) {
+        await pool.query(
+          'UPDATE candidatos SET drive_cv_file_id = $1 WHERE id = $2',
+          [result.file.id, candidatoData.id]
+        );
+      }
+      res.status(201).json({ success: true, file: result.file });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error subiendo CV de candidato a Drive:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/drive/files/:id - Get file info/link
+app.get('/api/drive/files/:id', async (req, res) => {
+  try {
+    await loadServices();
+    const { id } = req.params;
+    const { anyoneWithLink } = req.query;
+
+    const result = await driveService.getFileLink(id, anyoneWithLink !== 'false');
+
+    if (result.success) {
+      res.json({ success: true, ...result });
+    } else {
+      res.status(404).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error obteniendo enlace de archivo:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/drive/files/:id - Delete file
+app.delete('/api/drive/files/:id', async (req, res) => {
+  try {
+    await loadServices();
+    const { id } = req.params;
+
+    const result = await driveService.deleteFile(id);
+
+    if (result.success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error eliminando archivo de Drive:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/drive/folders - Create folder
+app.post('/api/drive/folders', async (req, res) => {
+  try {
+    await loadServices();
+    const { name, parentId } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Nombre de carpeta requerido' });
+    }
+
+    const result = await driveService.createFolder(name, parentId);
+
+    if (result.success) {
+      res.status(201).json({ success: true, folder: result.folder });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error creando carpeta en Drive:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/drive/folders/:id/files - List files in folder
+app.get('/api/drive/folders/:id/files', async (req, res) => {
+  try {
+    await loadServices();
+    const { id } = req.params;
+    const { maxResults } = req.query;
+
+    const result = await driveService.listFiles(id, maxResults ? parseInt(maxResults) : undefined);
+
+    if (result.success) {
+      res.json({ success: true, files: result.files });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('Error listando archivos de carpeta:', error);
     res.status(500).json({ error: error.message });
   }
 });

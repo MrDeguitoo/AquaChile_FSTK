@@ -18,7 +18,7 @@ const renderWithRouter = (initialPath = '/login') => {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/candidatos" element={<CandidatosPage />} />
               <Route path="/solicitudes" element={<SolicitudesPage />} />
             </Route>

@@ -25,6 +25,7 @@ CREATE TABLE candidatos (
     cargo VARCHAR(100),
     familia_cargo VARCHAR(100) NOT NULL,
     cv_url VARCHAR(255),
+    drive_cv_file_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -39,7 +40,9 @@ CREATE TABLE solicitudes (
     ubicacion VARCHAR(100),
     estado VARCHAR(50) DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'En Proceso', 'Completado', 'Rechazado', 'Finalizada')),
     fecha_solicitud DATE DEFAULT CURRENT_DATE,
-    observaciones TEXT
+    observaciones TEXT,
+    calendar_event_id VARCHAR(255),
+    drive_folder_id VARCHAR(255)
 );
 
 -- 4. Tabla de Evaluaciones Psicolaborales

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FilePlus, Loader2, AlertCircle, UserCheck } from 'lucide-react';
+import { FilePlus, Loader2, AlertCircle, UserCheck, Calendar, Mail, Bell } from 'lucide-react';
+import CalendarPicker from '../../components/CalendarPicker';
+import api from '../../api';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -12,6 +14,14 @@ export default function FormSolicitud({ onSolicitudCreated, candidatos = [], usu
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Calendar scheduling
+  const [scheduleEvaluation, setScheduleEvaluation] = useState(false);
+  const [calendarEvent, setCalendarEvent] = useState(null);
+
+  // Email notifications
+  const [sendSolicitudEmail, setSendSolicitudEmail] = useState(true);
+  const [sendEvaluationEmail, setSendEvaluationEmail] = useState(true);
 
   // Cargar candidatos y usuarios al montar
   const fetchCandidatos = useCallback(async () => {
@@ -57,27 +67,98 @@ export default function FormSolicitud({ onSolicitudCreated, candidatos = [], usu
       return;
     }
 
+    // Validate calendar if scheduling
+    if (scheduleEvaluation && !calendarEvent) {
+      setError('Por favor programa la evaluación seleccionando fecha y hora');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const solicitudData = {
+        candidato_id: Number(candidatoId),
+        analista_id: Number(analistaId),
+        usuario_id: Number(analistaId),
+        cargo_postulado: cargoPostulado.trim(),
+        unidad: unidad.trim() || null,
+        ubicacion: ubicacion.trim() || null,
+        observaciones: observaciones.trim() || null,
+      };
+
+      // Add calendar event ID if scheduled
+      if (scheduleEvaluation && calendarEvent) {
+        solicitudData.calendar_event_id = calendarEvent.id;
+      }
+
       const res = await fetch(`${API_BASE}/solicitudes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidato_id: Number(candidatoId),
-          analista_id: Number(analistaId),
-          usuario_id: Number(analistaId), // Por defecto el mismo analista
-          cargo_postulado: cargoPostulado.trim(),
-          unidad: unidad.trim() || null,
-          ubicacion: ubicacion.trim() || null,
-          observaciones: observaciones.trim() || null,
-        }),
+        body: JSON.stringify(solicitudData),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.error || 'Error al crear solicitud');
+      }
+
+      // Create calendar event if scheduled
+      if (scheduleEvaluation && calendarEvent) {
+        try {
+          const selectedCandidato = candidatos.find(c => c.id === Number(candidatoId));
+          const selectedAnalista = usuarios.find(u => u.id === Number(analistaId));
+
+          if (selectedCandidato && selectedAnalista) {
+            const calendarResult = await api.calendar.createEvaluationEvent(
+              data,
+              selectedCandidato,
+              selectedAnalista,
+              selectedAnalista, // evaluador defaults to analista
+              calendarEvent.start,
+              calendarEvent.duration
+            );
+
+            if (calendarResult.success && calendarResult.event) {
+              // Update solicitud with calendar event ID
+              await fetch(`${API_BASE}/solicitudes/${data.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ calendar_event_id: calendarResult.event.id }),
+              });
+
+              // Send evaluation scheduled email
+              if (sendEvaluationEmail) {
+                try {
+                  await api.email.sendEvaluationScheduled(
+                    data,
+                    calendarResult.event,
+                    selectedCandidato,
+                    selectedAnalista
+                  );
+                } catch (emailError) {
+                  console.warn('Error sending evaluation scheduled email:', emailError);
+                }
+              }
+            }
+          }
+        } catch (calendarError) {
+          console.warn('Solicitud creada, error al programar en calendario:', calendarError);
+        }
+      }
+
+      // Send solicitud notification email to analista
+      if (sendSolicitudEmail) {
+        try {
+          const selectedCandidato = candidatos.find(c => c.id === Number(candidatoId));
+          const selectedAnalista = usuarios.find(u => u.id === Number(analistaId));
+
+          if (selectedCandidato && selectedAnalista) {
+            await api.email.sendSolicitudNotification(data, selectedAnalista, selectedCandidato);
+          }
+        } catch (emailError) {
+          console.warn('Solicitud creada, error al enviar notificación:', emailError);
+        }
       }
 
       // Limpiar formulario
@@ -87,6 +168,8 @@ export default function FormSolicitud({ onSolicitudCreated, candidatos = [], usu
       setUnidad('');
       setUbicacion('');
       setObservaciones('');
+      setScheduleEvaluation(false);
+      setCalendarEvent(null);
 
       if (onSolicitudCreated) {
         onSolicitudCreated(data);
@@ -213,6 +296,69 @@ export default function FormSolicitud({ onSolicitudCreated, candidatos = [], usu
           className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
           placeholder="Notas adicionales sobre la solicitud..."
         />
+      </div>
+
+      {/* Calendar Scheduling */}
+      <div className="space-y-4">
+        <label className="flex items-center space-x-3 p-3 bg-emerald-50 rounded-lg cursor-pointer">
+          <input
+            type="checkbox"
+            checked={scheduleEvaluation}
+            onChange={(e) => setScheduleEvaluation(e.target.checked)}
+            className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+          />
+          <div className="flex-1">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4 text-emerald-600" />
+              <span className="font-medium text-gray-800">Programar evaluación en Google Calendar</span>
+            </div>
+            <p className="text-xs text-gray-500 ml-6">Crear evento de calendario y enviar invitaciones automáticamente</p>
+          </div>
+        </label>
+
+        {scheduleEvaluation && (
+          <CalendarPicker
+            onSchedule={setCalendarEvent}
+            disabled={loading}
+            initialDuration={90}
+          />
+        )}
+      </div>
+
+      {/* Email Notifications */}
+      <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
+        <h4 className="font-medium text-gray-800 flex items-center space-x-2">
+          <Mail className="w-4 h-4 text-blue-600" />
+          <span>Notificaciones por Email</span>
+        </h4>
+        <div className="space-y-2 ml-6">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sendSolicitudEmail}
+              onChange={(e) => setSendSolicitudEmail(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">
+              <Bell className="w-3.5 h-3.5 inline mr-1" />
+              Notificar al analista asignado sobre la nueva solicitud
+            </span>
+          </label>
+          {scheduleEvaluation && (
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sendEvaluationEmail}
+                onChange={(e) => setSendEvaluationEmail(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">
+                <Calendar className="w-3.5 h-3.5 inline mr-1" />
+                Enviar confirmación de evaluación programada al candidato
+              </span>
+            </label>
+          )}
+        </div>
       </div>
 
       <button

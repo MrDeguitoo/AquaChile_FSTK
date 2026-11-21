@@ -58,7 +58,7 @@ describe('Sidebar', () => {
     const candidatosLink = screen.getByText('Candidatos').closest('a');
     const solicitudesLink = screen.getByText('Solicitudes').closest('a');
 
-    expect(dashboardLink).toHaveAttribute('href', '/');
+    expect(dashboardLink).toHaveAttribute('href', '/dashboard');
     expect(candidatosLink).toHaveAttribute('href', '/candidatos');
     expect(solicitudesLink).toHaveAttribute('href', '/solicitudes');
   });

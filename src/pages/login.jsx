@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
+import { LogIn, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 
 // Regex estricta para emails @aquachile.cl
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@aquachile\.cl$/;
@@ -34,7 +34,7 @@ export default function LoginPage() {
         name: role === 'analista' ? 'Analista de Reclutamiento' : 'Psicólogo Evaluador',
       });
 
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setErrorMessage(err.message || 'Error al iniciar sesión');
     } finally {
@@ -45,6 +45,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        {/* Botón volver a la pantalla principal */}
+        <button
+          onClick={() => navigate('/')}
+          className="mb-4 inline-flex items-center space-x-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Volver a la pantalla principal</span>
+        </button>
+
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">AquaChile MVP</h1>
           <p className="text-sm text-gray-500 mt-1">Plataforma de Evaluación Psicolaboral</p>
